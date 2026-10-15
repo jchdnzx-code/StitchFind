@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StitchFind - AI Fashion Search Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fdf4f6',
+                            100: '#fce7ed',
+                            500: '#e11d48',
+                            600: '#be123c',
+                            700: '#9f1239',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .animate-pulse-subtle {
+            animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-full flex flex-col justify-between selection:bg-brand-100 selection:text-brand-700">
+
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/80 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetSearch()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">StitchFind</span>
+                    <span class="hidden sm:inline-block ml-1.5 px-2 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-700 rounded-full uppercase tracking-wider">AI Powered</span>
+                </div>
+            </div>
+            
+            <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-slate-600">
+                <a href="#" onclick="resetSearch(); return false;" class="hover:text-brand-600 transition">Explore</a>
+                <a href="#trending" onclick="filterByTrend('Trending'); return false;" class="hover:text-brand-600 transition">Trending AI Matches</a>
+                <a href="#stores" class="hover:text-brand-600 transition">Connected Stores (45+)</a>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="openSavedModal()" class="relative p-2.5 rounded-xl hover:bg-slate-100 text-slate-600 transition" title="Saved Items">
+                    <i class="fa-regular fa-heart text-lg"></i>
+                    <span id="saved-badge" class="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-brand-600 text-white text-[10px] flex items-center justify-center font-bold hidden">0</span>
+                </button>
+                <div class="hidden sm:flex items-center space-x-2 pl-2 border-l border-slate-200">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+                        <img src="https://placehold.co/100x100/e2e8f0/64748b?text=U" alt="User" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <section class="relative bg-gradient-to-b from-rose-50/60 via-slate-50 to-slate-50 py-12 lg:py-16 px-4 sm:px-6 lg:px-8 border-b border-slate-200/60">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white border border-rose-200/60 shadow-xs text-xs font-medium text-brand-600 mb-6">
+                    <i class="fa-solid fa-brain-circuit"></i>
+                    <span>Semantic Vector Search Enabled</span>
+                </div>
+                
+                <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4">
+                    Describe what you're looking for.<br><span class="bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">AI will find it across 45+ stores.</span>
+                </h1>
+                
+                <p class="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-8">
+                    Stop browsing endless tabs. Use natural language to search outfits by vibe, weather, event, or fabric instantly.
+                </p>
+
+                <!-- Search Bar Container -->
+                <div class="relative max-w-3xl mx-auto shadow-xl rounded-2xl bg-white p-2 border border-slate-200 transition-all focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500">
+                    <div class="flex items-center">
+                        <div class="pl-4 text-brand-600 text-xl">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="ai-search-input"
+                            oninput="handleSearchInput(event)"
+                            placeholder="Try 'Cozy oversized hoodie for fall weather' or 'Elegant satin slip dress'..."
+                            class="w-full px-4 py-3.5 bg-transparent text-slate-800 placeholder-slate-400 focus:outline-none text-base sm:text-lg font-medium"
+                        >
+                        <button onclick="triggerSearch()" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3.5 rounded-xl font-semibold transition flex items-center space-x-2 shadow-md shadow-brand-600/20 shrink-0">
+                            <span>Search AI</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Trending / AI Keyword Pills -->
+                <div class="mt-6 flex flex-wrap items-center justify-center gap-2" id="trending-pills">
+                    <span class="text-xs font-semibold text-slate-400 mr-1"><i class="fa-solid fa-fire text-amber-500 mr-1"></i> Trending AI Queries:</span>
+                    <button onclick="setQuery('Cozy oversized hoodie for fall weather')" class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:border-brand-500 hover:text-brand-600 transition shadow-xs">
+                        🍂 Cozy oversized hoodie
+                    </button>
+                    <button onclick="setQuery('Elegant satin slip dress for a wedding')" class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:border-brand-500 hover:text-brand-600 transition shadow-xs">
+                        ✨ Satin slip dress
+                    </button>
+                    <button onclick="setQuery('Y2K vintage streetwear jacket')" class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:border-brand-500 hover:text-brand-600 transition shadow-xs">
+                        🧢 Y2K streetwear jacket
+                    </button>
+                    <button onclick="setQuery('Minimalist linen pants for vacation')" class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:border-brand-500 hover:text-brand-600 transition shadow-xs">
+                        🌴 Linen vacation pants
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col lg:flex-row gap-8">
+                
+                <!-- Filter Sidebar -->
+                <aside class="w-full lg:w-72 shrink-0 space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                            <h2 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                                <i class="fa-solid fa-sliders text-brand-600"></i>
+                                <span>Refine Results</span>
+                            </h2>
+                            <button onclick="resetFilters()" class="text-xs font-semibold text-brand-600 hover:underline">Reset All</button>
+                        </div>
+
+                        <!-- Category Filter -->
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Categories</h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="category" value="All" checked onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span class="font-medium">All Categories</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="category" value="Dresses" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Dresses & Gowns</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="category" value="Streetwear" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Streetwear & Hoodies</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="category" value="Outerwear" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Outerwear & Jackets</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="category" value="Activewear" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Activewear & Athleisure</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Store Badge Filter -->
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Retail Stores</h3>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="store" value="Zara" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Zara</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="store" value="ASOS" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>ASOS</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="store" value="Depop Vintage" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Depop Vintage</span>
+                                </label>
+                                <label class="flex items-center space-x-3 text-sm text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="store" value="Revolve" onchange="applyFilters()" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                    <span>Revolve</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="border-slate-100">
+
+                        <!-- Max Price Filter -->
+                        <div>
+                            <div class="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                                <span>Max Price</span>
+                                <span id="price-output" class="text-brand-600 font-bold">$250</span>
+                            </div>
+                            <input type="range" id="price-slider" min="20" max="300" step="10" value="300" oninput="updatePrice(this.value)" class="w-full accent-brand-600 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <!-- AI Confidence Indicator Box -->
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-brand-600/20 rounded-full blur-xl pointer-events-none"></div>
+                        <h4 class="font-bold text-sm mb-1 flex items-center space-x-2">
+                            <i class="fa-solid fa-microchip text-rose-400"></i>
+                            <span>AI Matching Active</span>
+                        </h4>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Vector embeddings compare style tags, fabrics, and customer intent scores in real-time.
+                        </p>
+                    </div>
+                </aside>
+
+                <div class="flex-grow space-y-6">
+                    <!-- Results Header Status -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-xs gap-4">
+                        <div>
+                            <h2 id="results-title" class="text-lg font-bold text-slate-900">All Aggregated Products</h2>
+                            <p id="results-count" class="text-xs text-slate-500">Showing 8 items matched via AI vector index</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs font-medium text-slate-500">Sort by:</span>
+                            <select id="sort-select" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                                <option value="relevance">AI Relevance Match</option>
+                                <option value="low-high">Price: Low to High</option>
+                                <option value="high-low">Price: High to Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Product Grid Container -->
+                    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <!-- Dynamic JS injection for cards -->
+                    </div>
+
+                    <!-- Empty State (Hidden by default) -->
+                    <div id="empty-state" class="hidden text-center py-16 bg-white rounded-2xl border border-slate-200 p-8">
+                        <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto text-brand-600 text-2xl mb-4">
+                            <i class="fa-solid fa-shirt"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1">No matching clothes found</h3>
+                        <p class="text-sm text-slate-500 max-w-sm mx-auto mb-6">We couldn't find an exact match for your query across our connected stores. Try loosening your filters or typing different keywords.</p>
+                        <button onclick="resetSearch()" class="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition">Reset Search & Filters</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <div id="product-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
+            <div class="relative">
+                <button onclick="closeModal()" class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center shadow-md transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 bg-slate-100">
+                    <div class="h-72 md:h-full relative overflow-hidden bg-slate-200">
+                        <img id="modal-img" src="" alt="Product Image" class="w-full h-full object-cover">
+                        <span id="modal-match" class="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-xs font-bold">98% AI Match</span>
+                    </div>
+                    <div class="p-6 md:p-8 flex flex-col justify-between bg-white">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span id="modal-store" class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-rose-50 text-brand-600">Store Name</span>
+                                <span id="modal-price" class="text-xl font-extrabold text-slate-900">$0.00</span>
+                            </div>
+                            <h3 id="modal-title" class="text-lg font-bold text-slate-900 leading-snug">Product Title Here</h3>
+                            <p id="modal-desc" class="text-sm text-slate-600 leading-relaxed">Detailed AI generated fashion summary and fabric composition notes.</p>
+                            <div class="flex flex-wrap gap-1.5 pt-2" id="modal-tags">
+                                <!-- Tags inserted dynamically -->
+                            </div>
+                        </div>
+                        <div class="pt-6 mt-6 border-t border-slate-100 flex items-center space-x-3">
+                            <button onclick="toggleSaveCurrent()" id="modal-save-btn" class="p-3.5 rounded-xl border border-slate-200 hover:border-brand-500 hover:text-brand-600 text-slate-600 transition flex items-center justify-center">
+                                <i class="fa-regular fa-heart text-lg"></i>
+                            </button>
+                            <a id="modal-link" href="#" target="_blank" class="flex-grow bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3.5 px-6 rounded-xl transition text-center shadow-lg shadow-brand-600/20 flex items-center justify-center space-x-2">
+                                <span>Go to Store & Buy</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Modal -->
+    <div id="saved-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl p-6 border border-slate-100">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <h3 class="font-bold text-lg text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-heart text-brand-600"></i>
+                    <span>Saved Wardrobe Picks (<span id="saved-count-num">0</span>)</span>
+                </h3>
+                <button onclick="closeSavedModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="saved-items-container" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                <!-- Saved items rendered here -->
+            </div>
+            <div class="pt-4 mt-4 border-t border-slate-100 text-center">
+                <button onclick="closeSavedModal()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>&copy; 2026 StitchFind AI Inc. All rights reserved. Aggregating live inventory from verified retail partners.</p>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:text-slate-700 transition">Privacy Policy</a>
+                <a href="#" class="hover:text-slate-700 transition">Terms of Service</a>
+                <a href="#" class="hover:text-slate-700 transition">API Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Comprehensive clothing dataset simulating scraped items with embeddings metadata
+        const products = [
+            {
+                id: 1,
+                title: "Cozy Heavyweight Oversized Zip Hoodie",
+                category: "Streetwear",
+                store: "ASOS",
+                price: 65,
+                image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80",
+                desc: "Crafted from heavy 450gsm organic cotton fleece. Features a relaxed drop-shoulder cut ideal for chilly fall weather and layering.",
+                tags: ["cozy", "oversized", "hoodie", "fall", "streetwear", "cotton"],
+                matchScore: 99
+            },
+            {
+                id: 2,
+                title: "Emerald Green Satin Bias-Cut Slip Dress",
+                category: "Dresses",
+                store: "Revolve",
+                price: 188,
+                image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=600&q=80",
+                desc: "Luxurious fluid satin midi dress featuring a cowl neckline and delicate adjustable straps. Perfect for upscale summer weddings and cocktail events.",
+                tags: ["satin", "slip dress", "wedding", "elegant", "green", "formal"],
+                matchScore: 97
+            },
+            {
+                id: 3,
+                title: "Y2K Distressed Faux Leather Racing Jacket",
+                category: "Outerwear",
+                store: "Depop Vintage",
+                price: 120,
+                image: "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=600&q=80",
+                desc: "Authentic retro 2000s moto aesthetic with bold contrasting panels and heavy metal hardware. Sourced from top vintage curators.",
+                tags: ["y2k", "vintage", "streetwear", "jacket", "leather", "retro"],
+                matchScore: 95
+            },
+            {
+                id: 4,
+                title: "Relaxed Fit High-Waist Linen Vacation Trousers",
+                category: "Activewear",
+                store: "Zara",
+                price: 49.90,
+                image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=600&q=80",
+                desc: "Breathable 100% European linen pants with an elasticated drawstring waistband for maximum comfort during hot summer days.",
+                tags: ["linen", "pants", "vacation", "minimalist", "summer", "relaxed"],
+                matchScore: 92
+            },
+            {
+                id: 5,
+                title: "Ribbed Seamless Contour Athleisure Set",
+                category: "Activewear",
+                store: "ASOS",
+                price: 55,
+                image: "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=600&q=80",
+                desc: "High-stretch moisture-wicking ribbed fabric designed for yoga, gym workouts, or running errands with ultimate support.",
+                tags: ["activewear", "gym", "seamless", "leggings", "sports bra", "contour"],
+                matchScore: 89
+            },
+            {
+                id: 6,
+                title: "Structured Wool Blend Trench Coat in Camel",
+                category: "Outerwear",
+                store: "Zara",
+                price: 159,
+                image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80",
+                desc: "Classic double-breasted silhouette with epaulets, a belted waist, and storm flaps. A timeless staple for autumn layering.",
+                tags: ["trench coat", "wool", "camel", "outerwear", "fall", "classic"],
+                matchScore: 88
+            },
+            {
+                id: 7,
+                title: "Floral Tiered Boho Summer Sundress",
+                category: "Dresses",
+                store: "Revolve",
+                price: 145,
+                image: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80",
+                desc: "Romantic sweetheart neckline with tiered ruffle skirt and delicate vintage-inspired floral print. Ideal for beach vacations.",
+                tags: ["floral", "summer", "sundress", "beach", "boho", "dress"],
+                matchScore: 86
+            },
+            {
+                id: 8,
+                title: "Graphic Boxy Fit Streetwear Tee",
+                category: "Streetwear",
+                store: "Depop Vintage",
+                price: 38,
+                image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80",
+                desc: "Heavy cotton jersey vintage-wash t-shirt with distressed collar and custom front chest print.",
+                tags: ["graphic tee", "streetwear", "boxy", "vintage", "cotton", "casual"],
+                matchScore: 84
+            }
+        ];
+
+        let currentFilteredProducts = [...products];
+        let savedProductIds = [];
+        let activeModalProduct = null;
+
+        // Initialize App on Load
+        window.onload = function() {
+            renderProducts(products);
+        }
+
+        function setQuery(queryString) {
+            document.getElementById('ai-search-input').value = queryString;
+            triggerSearch();
+        }
+
+        function handleSearchInput(e) {
+            triggerSearch();
+        }
+
+        function triggerSearch() {
+            applyFilters();
+        }
+
+        function updatePrice(val) {
+            document.getElementById('price-output').innerText = '$' + val;
+            applyFilters();
+        }
+
+        function resetSearch() {
+            document.getElementById('ai-search-input').value = '';
+            resetFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('ai-search-input').value = '';
+            document.getElementById('price-slider').value = 300;
+            document.getElementById('price-output').innerText = '$300';
+            
+            const catBoxes = document.querySelectorAll('input[name="category"]');
+            catBoxes.forEach(b => b.checked = (b.value === 'All'));
+
+            const storeBoxes = document.querySelectorAll('input[name="store"]');
+            storeBoxes.forEach(b => b.checked = false);
+
+            document.getElementById('results-title').innerText = "All Aggregated Products";
+            renderProducts(products);
+        }
+
+        function filterByTrend(trendName) {
+            document.getElementById('ai-search-input').value = trendName;
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('ai-search-input').value.toLowerCase().trim();
+            const maxPrice = parseFloat(document.getElementById('price-slider').value);
+            const sortMode = document.getElementById('sort-select').value;
+
+            const selectedCategories = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(b => b.value);
+            const selectedStores = Array.from(document.querySelectorAll('input[name="store"]:checked')).map(b => b.value);
+
+            let results = products.filter(item => {
+                if (item.price > maxPrice) return false;
+
+                if (!selectedCategories.includes('All') && selectedCategories.length > 0) {
+                    if (!selectedCategories.includes(item.category)) return false;
+                }
+
+                if (selectedStores.length > 0 && !selectedStores.includes(item.store)) {
+                    return false;
+                }
+
+                if (query.length > 0) {
+                    const queryWords = query.split(/\s+/);
+                    let matchFound = false;
+                    let scoreBonus = 0;
+                    
+                    queryWords.forEach(word => {
+                        if (item.title.toLowerCase().includes(word) || 
+                            item.desc.toLowerCase().includes(word) || 
+                            item.category.toLowerCase().includes(word) ||
+                            item.store.toLowerCase().includes(word) ||
+                            item.tags.some(tag => tag.includes(word))) {
+                            matchFound = true;
+                            scoreBonus += 5;
+                        }
+                    });
+
+                    if (!matchFound) return false;
+                    item.dynamicMatch = Math.min(99, item.matchScore + scoreBonus);
+                } else {
+                    item.dynamicMatch = item.matchScore;
+                }
+
+                return true;
+            });
+
+            if (sortMode === 'low-high') {
+                results.sort((a, b) => a.price - b.price);
+            } else if (sortMode === 'high-low') {
+                results.sort((a, b) => b.price - a.price);
+            } else {
+                results.sort((a, b) => b.dynamicMatch - a.dynamicMatch);
+            }
+
+            currentFilteredProducts = results;
+            renderProducts(results);
+
+            if (query.length > 0) {
+                document.getElementById('results-title').innerText = `AI Results for "${query}"`;
+            } else {
+                document.getElementById('results-title').innerText = "All Aggregated Products";
+            }
+        }
+
+        function renderProducts(items) {
+            const grid = document.getElementById('product-grid');
+            const emptyState = document.getElementById('empty-state');
+            const countLabel = document.getElementById('results-count');
+
+            countLabel.innerText = `Showing ${items.length} items matched via AI vector index`;
+
+            if (items.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = items.map(item => {
+                const isSaved = savedProductIds.includes(item.id);
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
+                        <div class="relative h-64 overflow-hidden bg-slate-100 cursor-pointer" onclick="openModal(${item.id})">
+                            <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x600/e2e8f0/64748b?text=StitchFind+Item'">
+                            
+                            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-sm">
+                                ${item.store}
+                            </div>
+
+                            <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center space-x-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-rose-400"></i>
+                                <span>${item.dynamicMatch || item.matchScore}% Match</span>
+                            </div>
+
+                            <button onclick="event.stopPropagation(); toggleSave(${item.id})" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-700 hover:text-brand-600 shadow-sm transition">
+                                <i class="${isSaved ? 'fa-solid text-brand-600' : 'fa-regular'} fa-heart"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-5 flex flex-col flex-grow justify-between space-y-4">
+                            <div class="cursor-pointer" onclick="openModal(${item.id})">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">${item.category}</span>
+                                    <span class="text-lg font-extrabold text-slate-900">$${item.price.toFixed(2)}</span>
+                                </div>
+                                <h3 class="font-bold text-slate-900 line-clamp-1 group-hover:text-brand-600 transition">${item.title}</h3>
+                                <p class="text-xs text-slate-500 line-clamp-2 mt-1 leading-relaxed">${item.desc}</p>
+                            </div>
+
+                            <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <div class="flex flex-wrap gap-1">
+                                    ${item.tags.slice(0, 2).map(t => `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-medium rounded-md">#${t}</span>`).join('')}
+                                </div>
+                                <button onclick="openModal(${item.id})" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center space-x-1">
+                                    <span>View & Shop</span>
+                                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openModal(id) {
+            const item = products.find(p => p.id === id);
+            if (!item) return;
+            activeModalProduct = item;
+
+            document.getElementById('modal-img').src = item.image;
+            document.getElementById('modal-store').innerText = item.store;
+            document.getElementById('modal-price').innerText = `$${item.price.toFixed(2)}`;
+            document.getElementById('modal-title').innerText = item.title;
+            document.getElementById('modal-desc').innerText = item.desc;
+            document.getElementById('modal-match').innerText = `${item.dynamicMatch || item.matchScore}% AI Match`;
+            
+            const tagsContainer = document.getElementById('modal-tags');
+            tagsContainer.innerHTML = item.tags.map(t => `<span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-lg">#${t}</span>`).join('');
+
+            const saveBtn = document.getElementById('modal-save-btn');
+            const isSaved = savedProductIds.includes(item.id);
+            saveBtn.innerHTML = `<i class="${isSaved ? 'fa-solid text-brand-600' : 'fa-regular'} fa-heart text-lg"></i>`;
+
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+            activeModalProduct = null;
+        }
+
+        function toggleSave(id) {
+            const index = savedProductIds.indexOf(id);
+            if (index > -1) {
+                savedProductIds.splice(index, 1);
+            } else {
+                savedProductIds.push(id);
+            }
+            updateSavedBadge();
+            renderProducts(currentFilteredProducts);
+            if (activeModalProduct && activeModalProduct.id === id) {
+                openModal(id);
+            }
+        }
+
+        function toggleSaveCurrent() {
+            if (activeModalProduct) {
+                toggleSave(activeModalProduct.id);
+            }
+        }
+
+        function updateSavedBadge() {
+            const badge = document.getElementById('saved-badge');
+            if (savedProductIds.length > 0) {
+                badge.innerText = savedProductIds.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function openSavedModal() {
+            const container = document.getElementById('saved-items-container');
+            document.getElementById('saved-count-num').innerText = savedProductIds.length;
+
+            if (savedProductIds.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm">No saved items in your wardrobe yet. Click the heart icon on any clothing item to save it!</div>`;
+            } else {
+                const savedItems = products.filter(p => savedProductIds.includes(p.id));
+                container.innerHTML = savedItems.map(item => `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center space-x-3">
+                            <img src="${item.image}" alt="${item.title}" class="w-12 h-12 object-cover rounded-xl bg-slate-200">
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-900 line-clamp-1">${item.title}</h4>
+                                <span class="text-xs font-semibold text-brand-600">$${item.price.toFixed(2)} &bull; ${item.store}</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleSave(${item.id}); openSavedModal();" class="text-slate-400 hover:text-brand-600 p-2"><i class="fa-solid fa-trash-can text-sm"></i></button>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('saved-modal').classList.remove('hidden');
+        }
+
+        function closeSavedModal() {
+            document.getElementById('saved-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
